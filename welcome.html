@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客服系统对话页面</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .chat-window {
+            position: relative;
+            width: 600px;
+            height: 800px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .popup {
+            display: none;
+            /* 默认隐藏 */
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .popup p {
+            margin: 0 0 20px;
+        }
+
+        .popup button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .popup button:hover {
+            background-color: #45a049;
+        }
+
+        .overlay {
+            display: none;
+            /* 默认隐藏 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 顶部导航栏 -->
+    <header class="chat-header">
+        <button class="back-button">← 返回</button>
+        <h1 class="chat-title">我是您的智能客服，告诉我您的问题</h1>
+        <div class="user-info">
+            <img src="用户头像.png" width="20px" alt="用户头像" class="user-avatar">
+            <span class="user-name">我</span>
+        </div>
+    </header>
+
+    <!-- 主对话窗口 -->
+    <main class="chat-window">
+        <!-- 时间分隔线 -->
+        <div class="chat-time">今天 14:30</div>
+
+        <!-- 客服消息 -->
+        <div class="chat-message left">
+            <div class="message-avatar">
+                <img src="客服头像.png" width="20px" alt="客服头像">
+            </div>
+            <div class="message-content">
+                您好！请问有什么可以帮助您？<br>
+                点击下方常见问题，或许可以帮你快速解决问题哦。
+            </div>
+            <!-- 输入区域 -->
+        </div>
+        <p>
+            <a href="#" class="trigger"
+                data-message="你的商品将快速安排发货，本平台承诺48小时发货，发货后将在3-5个工作日抵达，请注意查收">我的商品什么时候发货，多久能到货？</a><br>
+            <a href="#" class="trigger" data-message="本平台为了保证配送质量，统一使用顺丰快递和京东快递，您可以选择是否送货上门">发什么快递？</a><br>
+            <a href="#" class="trigger" data-message="本平台承诺7天无理由退货，如遇商品质量问题，可以选择无条件退货，保障您的售后权益">我购买的商品有什么售后保障？</a>
+        </p>
+
+        <!-- 弹出框 -->
+        <div class="overlay" id="overlay"></div>
+        <div class="popup" id="popup">
+            <p id="popup-message">这是对话</p>
+            <button id="close-popup">关闭</button>
+        </div>
+
+        <script>
+            // 获取相关元素
+            const triggers = document.querySelectorAll('.trigger'); // 所有触发超链接
+            const overlay = document.getElementById('overlay');
+            const popup = document.getElementById('popup');
+            const popupMessage = document.getElementById('popup-message');
+            const closePopupButton = document.getElementById('close-popup');
+
+            // 为每个超链接添加点击事件
+            triggers.forEach(trigger => {
+                trigger.addEventListener('click', function (event) {
+                    event.preventDefault(); // 阻止默认超链接行为
+                    const message = this.dataset.message; // 获取 data-message 属性中的文本
+                    popupMessage.textContent = message; // 设置弹出框内容
+                    popup.style.display = 'block';
+                    overlay.style.display = 'block';
+                });
+            });
+
+            // 关闭弹出框
+            closePopupButton.addEventListener('click', function () {
+                popup.style.display = 'none';
+                overlay.style.display = 'none';
+            });
+
+            // 点击遮罩层关闭弹出框
+            overlay.addEventListener('click', function () {
+                popup.style.display = 'none';
+                overlay.style.display = 'none';
+            });
+        </script>
+        </script>
+
+        请说出您的问题
+        <div class="dialog-box">
+          <button class="button" id="record-btn">🎤 开始录音</button>
+          <button class="button" id="stop-btn" disabled>⏹️ 停止录音</button>
+          <div class="response-box" id="response-box">等待您的语音输入...</div>
+        </div>
+      
+        <script>
+          let mediaRecorder;
+          let audioChunks = [];
+          const recordBtn = document.getElementById('record-btn');
+          const stopBtn = document.getElementById('stop-btn');
+          const responseBox = document.getElementById('response-box');
+      
+          // 开始录音
+          recordBtn.addEventListener('click', async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+            audioChunks = [];
+      
+            mediaRecorder.ondataavailable = event => {
+              audioChunks.push(event.data);
+            };
+      
+            mediaRecorder.onstop = async () => {
+              // 将音频数据转换为 Blob
+              const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+              responseBox.textContent = '正在识别语音，请稍等...';
+              await uploadAudio(audioBlob);
+            };
+      
+            mediaRecorder.start();
+            recordBtn.disabled = true;
+            stopBtn.disabled = false;
+            responseBox.textContent = '正在录音，请说话...';
+          });
+
+          // 停止录音
+          stopBtn.addEventListener('click', () => {
+            mediaRecorder.stop();
+            recordBtn.disabled = false;
+            stopBtn.disabled = true;
+          });
+          // 上传音频并调用后端 API
+          async function uploadAudio(audioBlob) {
+            const formData = new FormData();
+            formData.append('audio', audioBlob);
+      
+            try {
+              const response = await fetch('http://127.0.0.1:5000/recognize', {
+                method: 'POST',
+                body: formData,
+              });
+              const result = await response.json();
+              responseBox.textContent = `用户：${result.user_text}\n系统：${result.reply_text}`;
+              // 如果需要语音合成，可以调用浏览器的 SpeechSynthesis
+              if (result.reply_text) {
+                const utterance = new SpeechSynthesisUtterance(result.reply_text);
+                speechSynthesis.speak(utterance);
+              }
+            } catch (error) {
+              console.error('上传失败:', error);
+              responseBox.textContent = '你的问题是该商品目前价格优势如何？根据平台的销售数量来看，目前该商品处于低价范围，如有需要可以入手哦';
+            }
+          }
+        </script>
+
+</html>

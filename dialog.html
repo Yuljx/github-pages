@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>语音对话框</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 50px;
+    }
+    .dialog-box {
+      border: 1px solid #ccc;
+      padding: 20px;
+      border-radius: 10px;
+      width: 60%;
+      margin: 0 auto;
+    }
+    .button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: #0056b3;
+    }
+    .response-box {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      min-height: 50px;
+      width: 80%;
+      margin: 20px auto;
+    }
+    .input-box {
+      width: 80%;
+      padding: 10px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>语音对话框</h1>
+  <div class="dialog-box">
+    <button class="button" id="record-btn">🎤 开始录音</button>
+    <button class="button" id="stop-btn" disabled>⏹️ 停止录音</button>
+    <div class="response-box" id="response-box">等待您的语音输入...</div>
+  </div>
+
+  <script>
+    let mediaRecorder;
+    let audioChunks = [];
+    const recordBtn = document.getElementById('record-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const responseBox = document.getElementById('response-box');
+
+    // 开始录音
+    recordBtn.addEventListener('click', async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = event => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        // 将音频数据转换为 Blob
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        responseBox.textContent = '正在识别语音，请稍等...';
+        await uploadAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      recordBtn.disabled = true;
+      stopBtn.disabled = false;
+      responseBox.textContent = '正在录音，请说话...';
+    });
+
+    // 停止录音
+    stopBtn.addEventListener('click', () => {
+      mediaRecorder.stop();
+      recordBtn.disabled = false;
+      stopBtn.disabled = true;
+    });
+
+    // 上传音频并调用后端 API
+    async function uploadAudio(audioBlob) {
+      const formData = new FormData();
+      formData.append('audio', audioBlob);
+
+      try {
+        const response = await fetch('http://127.0.0.1:5000/recognize', {
+          method: 'POST',
+          body: formData,
+        });
+        const result = await response.json();
+        responseBox.textContent = `用户：${result.user_text}\n系统：${result.reply_text}`;
+        // 如果需要语音合成，可以调用浏览器的 SpeechSynthesis
+        if (result.reply_text) {
+          const utterance = new SpeechSynthesisUtterance(result.reply_text);
+          speechSynthesis.speak(utterance);
+        }
+      } catch (error) {
+        console.error('上传失败:', error);
+        responseBox.textContent = '识别失败，请稍后重试。';
+      }
+    }
+  </script>
+</body>
+</html>
